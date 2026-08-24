@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Social Media Content Analyzer
 
-## Getting Started
+Upload a PDF or image and instantly extract text, then get rule-based engagement suggestions tailored for social media platforms.
 
-First, run the development server:
+## Setup
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Drag-and-drop or click-to-browse upload (PDF, PNG, JPG — up to 20 MB)
+- Server-side text extraction (pdfjs-dist for PDFs, Tesseract.js OCR for images)
+- Rule-based engagement suggestions: word count flags, hashtag count, call-to-action detection, readability score
+- Full TypeScript types throughout; logic split into focused `lib/` modules
 
-## Learn More
+## Approach
 
-To learn more about Next.js, take a look at the following resources:
+### PDF Parsing (`lib/extractPdf.ts`)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+PDF files are parsed server-side using **pdfjs-dist** in legacy/Node mode (no Worker thread). Each page's `TextContent` items are grouped by their vertical `y`-coordinate to reconstruct line breaks, then pages are joined with double newlines to approximate paragraph structure. Encrypted or purely image-based PDFs throw a descriptive error.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### OCR (`lib/extractImage.ts`)
 
-## Deploy on Vercel
+Images are processed server-side using **Tesseract.js** with the English language pack. The image buffer is converted to a Base64 data URI before being passed to the Tesseract worker, making it compatible with Next.js's Node.js API routes. The worker is terminated after each request to free memory. Tesseract reports a confidence score (0–100) that is surfaced in the results metadata.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Suggestion Engine (`lib/analyzeText.ts`)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+All analysis is local and rule-based — no external AI APIs. The engine checks:
+1. **Word count** — flags text as ideal for X/Twitter (≤280 words), LinkedIn/Facebook (≤500), or long-form (>2200).
+2. **Hashtags** — counts `#word` patterns; suggests 3–5 for best reach.
+3. **Call-to-action** — keyword list check (e.g. "comment", "share", "follow", "link in bio").
+4. **Readability** — average words per sentence; ≤15 words is mobile-friendly.
+
+### Known Limitations
+
+- **OCR accuracy**: Tesseract struggles with decorative fonts, very small text, or low-resolution scans. Confidence below ~60% usually means unreliable output.
+- **Image-only PDFs**: pdfjs cannot extract text from scanned PDFs; the user sees a clear error message. A future improvement would be to auto-detect this and re-route through Tesseract.
+- **Language support**: OCR is currently English-only.
+- **Suggestion engine**: Rules are heuristic and platform-agnostic — a LinkedIn article and a tweet are assessed against the same thresholds unless the user selects a target platform (not yet implemented).
+
+## Project Structure
+
+```
+app/
+  page.tsx              # Main page (upload + results orchestration)
+  layout.tsx            # Root layout + metadata
+  api/
+    extract/
+      route.ts          # Thin POST handler — delegates to lib/
+components/
+  Dropzone.tsx          # react-dropzone upload UI
+  ResultsView.tsx       # Suggestions + extracted text panel
+lib/
+  analyzeText.ts        # Rule-based suggestion engine
+  extractPdf.ts         # pdfjs-dist PDF parser
+  extractImage.ts       # Tesseract.js OCR
+```

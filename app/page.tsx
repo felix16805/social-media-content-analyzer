@@ -1,69 +1,304 @@
-import Image from "next/image";
+"use client";
+
+/**
+ * app/page.tsx
+ * Main page — orchestrates upload, extraction, and results display.
+ */
+
+import { useState, useEffect, useRef } from "react";
+import Dropzone from "@/components/Dropzone";
+import ResultsView from "@/components/ResultsView";
+import type { ExtractResponse } from "@/app/api/extract/route";
+
+type AppState =
+  | { stage: "idle" }
+  | { stage: "processing"; fileName: string; fileSize: number; isImage: boolean }
+  | {
+      stage: "done";
+      fileName: string;
+      fileSize: number;
+      result: ExtractResponse;
+    }
+  | { stage: "error"; message: string };
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Spinning SVG circle loader */
+function Spinner({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      className="spinner shrink-0"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.2" />
+      <path
+        d="M12 2a10 10 0 0110 10"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Elapsed-time hook */
+function useElapsed(active: boolean) {
+  const [secs, setSecs] = useState(0);
+  const ref = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (active) {
+      setSecs(0);
+      ref.current = setInterval(() => setSecs((s) => s + 1), 1000);
+    } else {
+      if (ref.current) clearInterval(ref.current);
+    }
+    return () => {
+      if (ref.current) clearInterval(ref.current);
+    };
+  }, [active]);
+
+  return secs;
+}
+
+// ── Step indicator ─────────────────────────────────────────────────────────────
+
+function Steps({ current }: { current: "upload" | "process" | "results" }) {
+  const steps = [
+    { id: "upload", label: "Upload" },
+    { id: "process", label: "Analyze" },
+    { id: "results", label: "Results" },
+  ] as const;
+  const activeIdx = steps.findIndex((s) => s.id === current);
+
+  return (
+    <div className="flex items-center justify-center gap-0" aria-label="Progress steps">
+      {steps.map((step, i) => {
+        const done = i < activeIdx;
+        const active = i === activeIdx;
+        return (
+          <div key={step.id} className="flex items-center">
+            <div className="flex flex-col items-center gap-1.5">
+              <div
+                className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300"
+                style={{
+                  background: done
+                    ? "linear-gradient(135deg, #8b5cf6, #06b6d4)"
+                    : active
+                      ? "rgba(139,92,246,0.2)"
+                      : "rgba(255,255,255,0.04)",
+                  border: active
+                    ? "1px solid rgba(139,92,246,0.6)"
+                    : done
+                      ? "none"
+                      : "1px solid rgba(255,255,255,0.1)",
+                  color: done ? "#fff" : active ? "#a78bfa" : "var(--text-muted)",
+                }}
+              >
+                {done ? "✓" : i + 1}
+              </div>
+              <span
+                className="text-xs font-medium"
+                style={{ color: active ? "var(--text-primary)" : "var(--text-muted)" }}
+              >
+                {step.label}
+              </span>
+            </div>
+
+            {i < steps.length - 1 && (
+              <div
+                className="mb-5 w-16 h-px mx-2 transition-all duration-500"
+                style={{
+                  background: done
+                    ? "linear-gradient(90deg, #8b5cf6, #06b6d4)"
+                    : "rgba(255,255,255,0.08)",
+                }}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const [state, setState] = useState<AppState>({ stage: "idle" });
+  const isProcessing = state.stage === "processing";
+  const elapsed = useElapsed(isProcessing);
+
+  async function handleFileAccepted(file: File) {
+    const isImage = file.type.startsWith("image/");
+    setState({ stage: "processing", fileName: file.name, fileSize: file.size, isImage });
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/extract", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setState({ stage: "error", message: (data as { error: string }).error ?? "Extraction failed." });
+        return;
+      }
+
+      setState({ stage: "done", fileName: file.name, fileSize: file.size, result: data as ExtractResponse });
+    } catch {
+      setState({ stage: "error", message: "Network error — could not reach the server. Please try again." });
+    }
+  }
+
+  function handleReset() {
+    setState({ stage: "idle" });
+  }
+
+  const currentStep =
+    state.stage === "done"
+      ? "results"
+      : state.stage === "processing"
+        ? "process"
+        : "upload";
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div className="min-h-screen px-4 py-10 sm:py-16">
+      <div className="mx-auto max-w-2xl flex flex-col gap-8">
+
+        {/* ── Hero ──────────────────────────────────────────────────────── */}
+        <header className="text-center flex flex-col items-center gap-3">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            <span className="gradient-text">Social Media</span>
+            <br />
+            Content Analyzer
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="max-w-md text-base leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            Upload a PDF or image — we extract the text, score your content, and give you
+            platform-specific engagement tips for Twitter, LinkedIn, Instagram &amp; Facebook.
           </p>
+        </header>
+
+        {/* ── Step tracker ──────────────────────────────────────────────── */}
+        <Steps current={currentStep} />
+
+        {/* ── Upload card ───────────────────────────────────────────────── */}
+        <div className="glass-card p-6 flex flex-col gap-4">
+          <Dropzone
+            onFileAccepted={handleFileAccepted}
+            onFileRejected={(reason) => setState({ stage: "error", message: reason })}
+            disabled={isProcessing}
+          />
+
+          {/* Processing status */}
+          {state.stage === "processing" && (
+            <div
+              className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm anim-slide-up"
+              style={{
+                background: "rgba(139,92,246,0.1)",
+                border: "1px solid rgba(139,92,246,0.25)",
+                color: "#c4b5fd",
+              }}
+            >
+              <Spinner size={16} />
+              <div className="flex-1">
+                <p className="font-medium">
+                  {state.isImage ? "Running OCR…" : "Extracting PDF text…"}{" "}
+                  <span style={{ color: "#a78bfa" }}>{elapsed}s</span>
+                </p>
+                <p className="mt-0.5 text-xs opacity-70">
+                  {state.isImage
+                    ? "Image OCR can take 15–30 seconds. Hang tight."
+                    : `Processing ${state.fileName} (${formatBytes(state.fileSize)})`}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {state.stage === "error" && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm anim-slide-up"
+              style={{
+                background: "rgba(239,68,68,0.1)",
+                border: "1px solid rgba(239,68,68,0.25)",
+                color: "#fca5a5",
+              }}
+            >
+              <svg className="mt-0.5 h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <div className="flex-1">
+                <span className="font-semibold">Error: </span>
+                {state.message}
+              </div>
+              <button
+                onClick={handleReset}
+                className="shrink-0 rounded-lg px-2 py-0.5 text-xs font-medium transition-colors hover:bg-red-500/20"
+                aria-label="Dismiss error"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        {/* ── Results card ──────────────────────────────────────────────── */}
+        {state.stage === "done" && (
+          <div className="glass-card p-6 flex flex-col gap-5 anim-slide-up">
+            {/* Header row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span
+                  className="rounded-lg px-2.5 py-1 font-mono text-xs"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {state.fileName}
+                </span>
+                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  {formatBytes(state.fileSize)}
+                </span>
+              </div>
+              <button
+                id="analyze-another-btn"
+                onClick={handleReset}
+                className="rounded-xl px-3 py-1.5 text-xs font-medium transition-all duration-200 hover:bg-white/5"
+                style={{
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                ← Analyze another
+              </button>
+            </div>
+
+            <ResultsView result={state.result} analysis={state.result.analysis} />
+          </div>
+        )}
+
+        {/* ── Footer ────────────────────────────────────────────────────── */}
+        <footer className="text-center text-xs" style={{ color: "var(--text-muted)" }}>
+          All processing happens on-server. Your files are never stored.
+        </footer>
+      </div>
     </div>
   );
 }
