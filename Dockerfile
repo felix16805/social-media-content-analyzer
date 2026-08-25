@@ -9,6 +9,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Disable telemetry during build
 ENV NEXT_TELEMETRY_DISABLED 1
+# Enable standalone output for Docker
+ENV DOCKER_BUILD 1
 # Optionally accept backend API URL during build
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL

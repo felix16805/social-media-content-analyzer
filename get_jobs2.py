@@ -1,0 +1,1 @@
+import urllib.request, json; req = urllib.request.Request('https://api.github.com/repos/felix16805/social-media-content-analyzer/actions/runs/32869614540/jobs', headers={'Accept': 'application/vnd.github+json'}); res = urllib.request.urlopen(req); jobs = json.loads(res.read()).get('jobs', []); [print(str(j['id']) + ':' + j['name'] + ':' + str(j['conclusion'])) for j in jobs]

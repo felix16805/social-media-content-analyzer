@@ -1,0 +1,1 @@
+import urllib.request, json; req = urllib.request.Request('https://api.github.com/repos/felix16805/social-media-content-analyzer/actions/jobs/97873196772/logs', headers={'Accept': 'application/vnd.github+json'}); req.add_unredirected_header('Authorization', ''); res = urllib.request.urlopen(req); print(res.read().decode()[-3000:])

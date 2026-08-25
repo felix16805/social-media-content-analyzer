@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Use standalone output only when building for Docker.
+  // Vercel manages its own output format and errors if standalone is set.
+  ...(process.env.DOCKER_BUILD === "1" ? { output: "standalone" } : {}),
   // Silence the "webpack config without turbopack config" warning.
   // We only need the webpack alias for production builds; in dev Turbopack
   // resolves the missing canvas module gracefully.
