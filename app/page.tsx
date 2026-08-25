@@ -5,7 +5,7 @@
  * Main page — orchestrates upload, extraction, and results display.
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Dropzone from "@/components/Dropzone";
 import ResultsView from "@/components/ResultsView";
 import { extractPdfText } from "@/lib/extractPdf";
@@ -57,17 +57,22 @@ function Spinner({ size = 16 }: { size?: number }) {
 /** Elapsed-time hook */
 function useElapsed(active: boolean) {
   const [secs, setSecs] = useState(0);
-  const ref = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [prevActive, setPrevActive] = useState(active);
 
-  useEffect(() => {
+  if (active !== prevActive) {
+    setPrevActive(active);
     if (active) {
       setSecs(0);
-      ref.current = setInterval(() => setSecs((s) => s + 1), 1000);
-    } else {
-      if (ref.current) clearInterval(ref.current);
+    }
+  }
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (active) {
+      interval = setInterval(() => setSecs((s) => s + 1), 1000);
     }
     return () => {
-      if (ref.current) clearInterval(ref.current);
+      if (interval) clearInterval(interval);
     };
   }, [active]);
 

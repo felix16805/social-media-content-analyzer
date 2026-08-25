@@ -11,11 +11,10 @@ export default function HistoryPage() {
   const [page, setPage] = useState(1);
 
   const fetchHistory = async (p: number) => {
-    setLoading(true);
-    setError(null);
     try {
       const result = await getHistory(p, 10);
       setData(result);
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load history");
     } finally {
@@ -24,11 +23,13 @@ export default function HistoryPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchHistory(page);
   }, [page]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this analysis?")) return;
+    setLoading(true);
     try {
       await deleteAnalysis(id);
       fetchHistory(page);
@@ -128,7 +129,7 @@ export default function HistoryPage() {
               <div className="flex items-center justify-center gap-4 mt-4">
                 <button
                   disabled={page === 1}
-                  onClick={() => setPage(p => p - 1)}
+                  onClick={() => { setLoading(true); setPage(p => p - 1); }}
                   className="px-3 py-1.5 rounded-lg text-sm bg-white/5 border border-white/10 disabled:opacity-50"
                 >
                   Previous
@@ -138,7 +139,7 @@ export default function HistoryPage() {
                 </span>
                 <button
                   disabled={page === data.totalPages}
-                  onClick={() => setPage(p => p + 1)}
+                  onClick={() => { setLoading(true); setPage(p => p + 1); }}
                   className="px-3 py-1.5 rounded-lg text-sm bg-white/5 border border-white/10 disabled:opacity-50"
                 >
                   Next

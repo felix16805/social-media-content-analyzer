@@ -38,7 +38,7 @@ export function createHistoryRouter(prisma: PrismaClient): Router {
       ]);
 
       // Build a brief summary of suggestions (count by status)
-      const itemsWithSummary = items.map((item: any) => {
+      const itemsWithSummary = items.map((item) => {
         const suggestions = item.suggestions as Array<{ status: string }>;
         const summary = { good: 0, warning: 0, error: 0 };
         for (const s of suggestions) {

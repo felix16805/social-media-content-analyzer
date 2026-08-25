@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { getAnalysisById, type SavedAnalysis } from "@/lib/api";
+import type { ExtractResponse } from "@/lib/types";
 import ResultsView from "@/components/ResultsView";
 
 export default function HistoryDetailPage() {
@@ -51,12 +52,12 @@ export default function HistoryDetailPage() {
 
   // Construct a faux ExtractResponse to feed into the ResultsView component
   // We don't have the original file metadata, so we use a dummy "history" type
-  const resultObj = {
+  const resultObj: ExtractResponse = {
     text: analysis.extractedText,
     wordCount: analysis.wordCount,
     metadata: {
-      type: "history" as any, // Bypass strict type check for display purposes
-      date: new Date(analysis.createdAt).toLocaleString(),
+      type: "pdf",
+      pageCount: 1,
     },
     analysis: {
       wordCount: analysis.wordCount,
@@ -84,7 +85,7 @@ export default function HistoryDetailPage() {
         </div>
         
         <div className="glass-card p-6">
-          <ResultsView result={resultObj as any} analysis={resultObj.analysis} />
+          <ResultsView result={resultObj} analysis={resultObj.analysis} />
         </div>
       </div>
     </div>

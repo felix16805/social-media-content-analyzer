@@ -1,5 +1,5 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
-export default {
+const config = {
   preset: "ts-jest",
   testEnvironment: "node",
   moduleNameMapper: {
@@ -15,3 +15,5 @@ export default {
     ],
   },
 };
+
+export default config;

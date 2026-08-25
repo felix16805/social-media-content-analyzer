@@ -5,7 +5,7 @@
 
 import { Router } from "express";
 import { z } from "zod";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { analyzeText } from "../lib/analyzeText.js";
 import { validate } from "../middleware/validate.js";
 
@@ -34,8 +34,8 @@ export function createAnalyzeRouter(prisma: PrismaClient): Router {
           hasCallToAction: analysis.hasCta,
           readabilityScore: analysis.avgWordsPerSentence,
           overallScore: analysis.overallScore,
-          suggestions: analysis.suggestions as any,
-          platforms: analysis.platforms as any,
+          suggestions: analysis.suggestions as unknown as Prisma.InputJsonValue,
+          platforms: analysis.platforms as unknown as Prisma.InputJsonValue,
         },
       });
 
