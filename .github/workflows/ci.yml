@@ -57,7 +57,7 @@ jobs:
           node-version: '20'
 
       - name: Cache backend npm
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: server/node_modules
           key: ${{ runner.os }}-backend-node-${{ hashFiles('server/package-lock.json') }}
