@@ -34,7 +34,7 @@ const securityHeaders = [
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob:",
       "connect-src 'self' http://localhost:4000 https://unpkg.com",
-      "worker-src blob: 'self'",
+      "worker-src blob: 'self' https://unpkg.com",
       "frame-ancestors 'none'",
     ].join("; "),
   },
