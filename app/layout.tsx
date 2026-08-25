@@ -20,13 +20,18 @@ export const metadata: Metadata = {
     "Upload a PDF or image to extract text and get instant AI-powered social media engagement suggestions for Twitter, LinkedIn, Instagram, and Facebook.",
 };
 
+import Navbar from "@/components/Navbar";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Navbar />
+        {children}
+      </body>
     </html>
   );
 }

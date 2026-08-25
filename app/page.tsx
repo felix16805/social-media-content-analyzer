@@ -8,7 +8,11 @@
 import { useState, useEffect, useRef } from "react";
 import Dropzone from "@/components/Dropzone";
 import ResultsView from "@/components/ResultsView";
-import type { ExtractResponse } from "@/app/api/extract/route";
+import { extractPdfText } from "@/lib/extractPdf";
+import { extractImageText } from "@/lib/extractImage";
+import { analyzeText } from "@/lib/analyzeText";
+import { postAnalysis } from "@/lib/api";
+import type { ExtractResponse } from "@/lib/types";
 
 type AppState =
   | { stage: "idle" }
@@ -18,6 +22,7 @@ type AppState =
       fileName: string;
       fileSize: number;
       result: ExtractResponse;
+      analysisId?: string;
     }
   | { stage: "error"; message: string };
 
@@ -141,21 +146,60 @@ export default function Home() {
     const isImage = file.type.startsWith("image/");
     setState({ stage: "processing", fileName: file.name, fileSize: file.size, isImage });
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const res = await fetch("/api/extract", { method: "POST", body: formData });
-      const data = await res.json();
+      // 1. Client-side extraction
+      let text = "";
+      let metadata: ExtractResponse["metadata"];
+      let wordCount = 0;
 
-      if (!res.ok) {
-        setState({ stage: "error", message: (data as { error: string }).error ?? "Extraction failed." });
-        return;
+      if (isImage) {
+        const extracted = await extractImageText(file);
+        text = extracted.text;
+        wordCount = extracted.wordCount;
+        metadata = {
+          type: "image",
+          width: extracted.dimensions.width,
+          height: extracted.dimensions.height,
+          confidence: extracted.confidence,
+        };
+      } else {
+        const arrayBuffer = await file.arrayBuffer();
+        const extracted = await extractPdfText(arrayBuffer);
+        text = extracted.text;
+        wordCount = extracted.wordCount;
+        metadata = {
+          type: "pdf",
+          pageCount: extracted.pageCount,
+        };
       }
 
-      setState({ stage: "done", fileName: file.name, fileSize: file.size, result: data as ExtractResponse });
-    } catch {
-      setState({ stage: "error", message: "Network error — could not reach the server. Please try again." });
+      // 2. Analysis and Persistence
+      let analysisId: string | undefined;
+      let analysis;
+
+      try {
+        const persisted = await postAnalysis(text);
+        analysisId = persisted.analysisId;
+        analysis = persisted.analysis;
+      } catch (err) {
+        console.warn("Backend unavailable, degrading gracefully to local analysis:", err);
+        analysis = analyzeText(text);
+      }
+
+      setState({
+        stage: "done",
+        fileName: file.name,
+        fileSize: file.size,
+        result: {
+          text,
+          wordCount,
+          metadata,
+          analysis,
+        },
+        analysisId,
+      });
+    } catch (err) {
+      setState({ stage: "error", message: err instanceof Error ? err.message : "Extraction failed." });
     }
   }
 

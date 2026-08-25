@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   // Silence the "webpack config without turbopack config" warning.
   // We only need the webpack alias for production builds; in dev Turbopack
   // resolves the missing canvas module gracefully.

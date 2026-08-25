@@ -1,62 +1,85 @@
 # Social Media Content Analyzer
 
-Upload a PDF or image and instantly extract text, then get rule-based engagement suggestions tailored for social media platforms.
+A full-stack application that analyzes extracted text (via client-side OCR for images or PDF parsing) and provides AI-driven engagement suggestions tailored for various social media platforms (Twitter, LinkedIn, Instagram, Facebook).
 
-## Setup
+## Architecture
+
+This project is structured as two independent but cooperative services:
+
+```
+┌────────────────────────────────┐       ┌────────────────────────────────┐
+│  Next.js 14 Frontend           │       │  Express + TypeScript Backend  │
+│  (React, Tailwind, pdfjs-dist) │──────▶│  (Prisma, Zod, Pino)           │
+└────────────────────────────────┘       └────────────────────────────────┘
+                                                         │
+                                                         ▼
+                                         ┌────────────────────────────────┐
+                                         │  PostgreSQL Database           │
+                                         └────────────────────────────────┘
+```
+
+- **Frontend (`./`)**: Handles file upload, client-side extraction (reducing server compute overhead), and renders beautiful UI components.
+- **Backend (`./server`)**: Validates text, runs the core rule-based analysis engine, and persists historical results.
+- **Graceful Degradation**: If the backend is unavailable, the frontend continues to perform local analysis seamlessly.
+
+## Getting Started (Docker Compose)
+
+The easiest way to run the full stack is via Docker Compose:
 
 ```bash
-npm install
-npm run dev
+npm run docker:up
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+This will spin up:
+- PostgreSQL on port 5432
+- Backend API on port 4000 (`http://localhost:4000/api/health`)
+- Frontend App on port 3000 (`http://localhost:3000`)
 
-## Features
-
-- Drag-and-drop or click-to-browse upload (PDF, PNG, JPG — up to 20 MB)
-- Server-side text extraction (pdfjs-dist for PDFs, Tesseract.js OCR for images)
-- Rule-based engagement suggestions: word count flags, hashtag count, call-to-action detection, readability score
-- Full TypeScript types throughout; logic split into focused `lib/` modules
-
-## Approach
-
-### PDF Parsing (`lib/extractPdf.ts`)
-
-PDF files are parsed server-side using **pdfjs-dist** in legacy/Node mode (no Worker thread). Each page's `TextContent` items are grouped by their vertical `y`-coordinate to reconstruct line breaks, then pages are joined with double newlines to approximate paragraph structure. Encrypted or purely image-based PDFs throw a descriptive error.
-
-### OCR (`lib/extractImage.ts`)
-
-Images are processed server-side using **Tesseract.js** with the English language pack. The image buffer is converted to a Base64 data URI before being passed to the Tesseract worker, making it compatible with Next.js's Node.js API routes. The worker is terminated after each request to free memory. Tesseract reports a confidence score (0–100) that is surfaced in the results metadata.
-
-### Suggestion Engine (`lib/analyzeText.ts`)
-
-All analysis is local and rule-based — no external AI APIs. The engine checks:
-1. **Word count** — flags text as ideal for X/Twitter (≤280 words), LinkedIn/Facebook (≤500), or long-form (>2200).
-2. **Hashtags** — counts `#word` patterns; suggests 3–5 for best reach.
-3. **Call-to-action** — keyword list check (e.g. "comment", "share", "follow", "link in bio").
-4. **Readability** — average words per sentence; ≤15 words is mobile-friendly.
-
-### Known Limitations
-
-- **OCR accuracy**: Tesseract struggles with decorative fonts, very small text, or low-resolution scans. Confidence below ~60% usually means unreliable output.
-- **Image-only PDFs**: pdfjs cannot extract text from scanned PDFs; the user sees a clear error message. A future improvement would be to auto-detect this and re-route through Tesseract.
-- **Language support**: OCR is currently English-only.
-- **Suggestion engine**: Rules are heuristic and platform-agnostic — a LinkedIn article and a tweet are assessed against the same thresholds unless the user selects a target platform (not yet implemented).
-
-## Project Structure
-
+To stop the containers:
+```bash
+npm run docker:down
 ```
-app/
-  page.tsx              # Main page (upload + results orchestration)
-  layout.tsx            # Root layout + metadata
-  api/
-    extract/
-      route.ts          # Thin POST handler — delegates to lib/
-components/
-  Dropzone.tsx          # react-dropzone upload UI
-  ResultsView.tsx       # Suggestions + extracted text panel
-lib/
-  analyzeText.ts        # Rule-based suggestion engine
-  extractPdf.ts         # pdfjs-dist PDF parser
-  extractImage.ts       # Tesseract.js OCR
+
+## Local Development (Without Docker)
+
+If you prefer to run services individually:
+
+1. **Start PostgreSQL**: Make sure you have a local postgres instance running.
+2. **Backend**:
+   ```bash
+   cd server
+   cp .env.example .env
+   # Update DATABASE_URL in .env if needed
+   npm install
+   npx prisma migrate dev
+   npm run dev
+   ```
+3. **Frontend**:
+   ```bash
+   cd ..
+   cp .env.example .env.local
+   npm install
+   npm run dev
+   ```
+
+## API Endpoints
+
+- `POST /api/analyze` - Accepts `{ text: string }` and returns engagement analysis.
+- `GET /api/history` - Returns a paginated list of past analyses.
+- `GET /api/history/:id` - Returns a single analysis by ID.
+- `DELETE /api/history/:id` - Deletes an analysis.
+- `GET /api/health` - Container health check.
+
+## Testing
+
+```bash
+# Frontend Tests (React Testing Library + Jest)
+npm test
+
+# Backend Tests (Supertest + Jest)
+cd server && npm test
 ```
+
+## Known Limitations
+- The `pdfjs-dist` library requires a webpack alias for `canvas` due to Turbopack limitations in development.
+- Duplicate types: For simplicity, the `AnalysisResult` type is duplicated between frontend and backend to avoid a complex monorepo configuration.

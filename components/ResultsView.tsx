@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from "react";
-import type { ExtractResponse } from "@/app/api/extract/route";
+import type { ExtractResponse } from "@/lib/types";
 import type { AnalysisResult, Platform, Suggestion } from "@/lib/analyzeText";
 import ScoreRing from "./ScoreRing";
 
