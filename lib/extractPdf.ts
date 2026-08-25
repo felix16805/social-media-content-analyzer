@@ -19,8 +19,8 @@ export async function extractPdfText(buffer: ArrayBuffer): Promise<PdfExtractRes
   // Dynamic import so it only loads on the client side
   const pdfjsLib = await import("pdfjs-dist");
 
-  // Configure worker
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  // Configure worker — served locally from /public to avoid CSP issues with external CDNs
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
   const uint8Array = new Uint8Array(buffer);
 

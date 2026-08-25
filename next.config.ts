@@ -24,7 +24,7 @@ const securityHeaders = [
   // - img-src *                       allow images from any source (user uploads previews)
   // - font-src 'self' fonts.gstatic   Google Fonts
   // - connect-src 'self' localhost    allow fetches to self + local backend
-  // - worker-src blob:                pdfjs-dist loads its worker as a blob
+  // - worker-src blob: 'self'          pdfjs-dist worker served from /public
   {
     key: "Content-Security-Policy",
     value: [
@@ -33,8 +33,8 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob:",
-      "connect-src 'self' http://localhost:4000 https://unpkg.com",
-      "worker-src blob: 'self' https://unpkg.com",
+      "connect-src 'self' http://localhost:4000",
+      "worker-src blob: 'self'",
       "frame-ancestors 'none'",
     ].join("; "),
   },
