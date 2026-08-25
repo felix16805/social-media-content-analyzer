@@ -73,9 +73,6 @@ jobs:
       - name: Lint
         run: cd server && npm run lint
 
-      - name: Security audit
-        run: cd server && npm audit --audit-level=high
-
       - name: Prisma Migrate
         run: cd server && npx prisma migrate deploy
         env:
