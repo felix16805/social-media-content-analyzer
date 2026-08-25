@@ -11,14 +11,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      - run: npm ci
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Security audit
+        run: npm audit --audit-level=high
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
 
   backend:
     runs-on: ubuntu-latest
@@ -36,11 +48,14 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - name: Cache backend npm
         uses: actions/cache@v3
         with:
@@ -48,20 +63,29 @@ jobs:
           key: ${{ runner.os }}-backend-node-${{ hashFiles('server/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-backend-node-
+
       - name: Install dependencies
         run: cd server && npm ci
+
       - name: Generate Prisma Client
         run: cd server && npx prisma generate
+
       - name: Lint
         run: cd server && npm run lint
+
+      - name: Security audit
+        run: cd server && npm audit --audit-level=high
+
       - name: Prisma Migrate
         run: cd server && npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/smca_test
+
       - name: Test
         run: cd server && npm test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/smca_test
+          API_SECRET: ci-test-secret
 
   docker-publish:
     needs: [frontend, backend]
@@ -72,20 +96,21 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: ./server
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/smca-backend:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/smca-backend:latest
-      
+
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:

@@ -6,6 +6,12 @@
 import type { AnalysisResult } from "./analyzeText";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_SECRET = process.env.NEXT_PUBLIC_API_SECRET || "";
+
+/** Returns Authorization header if an API secret is configured. */
+function authHeaders(): Record<string, string> {
+  return API_SECRET ? { Authorization: `Bearer ${API_SECRET}` } : {};
+}
 
 export interface PaginatedResponse<T> {
   items: T[];
@@ -49,7 +55,7 @@ export interface SavedAnalysis {
 export async function postAnalysis(text: string): Promise<{ analysisId: string; analysis: AnalysisResult }> {
   const res = await fetch(`${API_URL}/api/analyze`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ text }),
   });
   if (!res.ok) {
@@ -66,6 +72,7 @@ export async function getHistory(page = 1, limit = 10): Promise<PaginatedRespons
   const res = await fetch(`${API_URL}/api/history?page=${page}&limit=${limit}`, {
     // Avoid Next.js caching this since it changes dynamically
     cache: "no-store",
+    headers: { ...authHeaders() },
   });
   if (!res.ok) {
     throw new Error("Failed to fetch history");
@@ -77,7 +84,7 @@ export async function getHistory(page = 1, limit = 10): Promise<PaginatedRespons
  * Fetches the full detail of a specific past analysis by ID.
  */
 export async function getAnalysisById(id: string): Promise<SavedAnalysis> {
-  const res = await fetch(`${API_URL}/api/history/${id}`, { cache: "no-store" });
+  const res = await fetch(`${API_URL}/api/history/${id}`, { cache: "no-store", headers: { ...authHeaders() } });
   if (!res.ok) {
     throw new Error("Failed to fetch analysis details");
   }
@@ -90,6 +97,7 @@ export async function getAnalysisById(id: string): Promise<SavedAnalysis> {
 export async function deleteAnalysis(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/history/${id}`, {
     method: "DELETE",
+    headers: { ...authHeaders() },
   });
   if (!res.ok) {
     throw new Error("Failed to delete analysis");
