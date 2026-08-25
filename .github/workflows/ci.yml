@@ -102,14 +102,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./server
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/smca-backend:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/smca-backend:latest
 
       - name: Build and push frontend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
