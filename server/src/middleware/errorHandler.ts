@@ -24,8 +24,9 @@ export function errorHandler(
 ): void {
   // Zod validation errors
   if (err instanceof ZodError) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const message = (err as any).errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join("; ");
+    const message = err.issues
+      .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+      .join("; ");
     res.status(400).json({ error: message, code: "VALIDATION_ERROR" } satisfies ApiError);
     return;
   }
