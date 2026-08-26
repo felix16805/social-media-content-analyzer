@@ -1,40 +1,40 @@
 {
-    "name": "social-media-content-analyzer",
-    "version": "0.1.0",
-    "private": true,
-    "scripts": {
-          "dev": "next dev",
-          "build": "next build",
-          "start": "next start",
-          "lint": "eslint",
-          "postinstall": "node -e \"const fs=require('fs');fs.copyFileSync('node_modules/pdfjs-dist/build/pdf.worker.min.mjs','public/pdf.worker.min.mjs');console.log('PDF worker copied to public/')\"",
-          "docker:up": "docker compose up --build",
-          "docker:down": "docker compose down",
-          "test": "jest"
-    },
-    "dependencies": {
-          "next": "16.3.2",
-          "pdfjs-dist": "^6.2.108",
-          "react": "19.2.8",
-          "react-dom": "19.2.8",
-          "react-dropzone": "^20.1.1",
-          "tesseract.js": "^7.0.0"
-    },
-    "devDependencies": {
-          "@swc/jest": "^0.2.39",
-          "@tailwindcss/postcss": "^4",
-          "@testing-library/jest-dom": "^7.0.1",
-          "@testing-library/react": "^16.3.2",
-          "@types/jest": "^30.0.0",
-          "@types/node": "^26",
-          "@types/react": "^19",
-          "@types/react-dom": "^19",
-          "eslint": "^10",
-          "eslint-config-next": "16.3.2",
-          "jest": "^30.4.2",
-          "jest-environment-jsdom": "^30.4.1",
-          "tailwindcss": "^4",
-          "ts-node": "^10.9.2",
-          "typescript": "^5.9.3"
-    }
+      "name": "social-media-content-analyzer",
+      "version": "0.1.0",
+      "private": true,
+      "scripts": {
+              "dev": "next dev",
+              "build": "next build",
+              "start": "next start",
+              "lint": "eslint",
+              "postinstall": "node -e \"const fs=require('fs');fs.mkdirSync('public', {recursive: true});fs.copyFileSync('node_modules/pdfjs-dist/build/pdf.worker.min.mjs','public/pdf.worker.min.mjs');console.log('PDF worker copied to public/')\"",
+              "docker:up": "docker compose up --build",
+              "docker:down": "docker compose down",
+              "test": "jest"
+      },
+      "dependencies": {
+              "next": "16.3.2",
+              "pdfjs-dist": "^6.2.108",
+              "react": "19.2.8",
+              "react-dom": "19.2.8",
+              "react-dropzone": "^20.1.1",
+              "tesseract.js": "^7.0.0"
+      },
+      "devDependencies": {
+              "@swc/jest": "^0.2.39",
+              "@tailwindcss/postcss": "^4",
+              "@testing-library/jest-dom": "^7.0.1",
+              "@testing-library/react": "^16.3.2",
+              "@types/jest": "^30.0.0",
+              "@types/node": "^26",
+              "@types/react": "^19",
+              "@types/react-dom": "^19",
+              "eslint": "^10",
+              "eslint-config-next": "16.3.2",
+              "jest": "^30.4.2",
+              "jest-environment-jsdom": "^30.4.1",
+              "tailwindcss": "^4",
+              "ts-node": "^10.9.2",
+              "typescript": "^5.9.3"
+      }
 }
