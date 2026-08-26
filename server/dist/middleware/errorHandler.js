@@ -10,9 +10,12 @@ const zod_1 = require("zod");
 /**
  * Catches all errors thrown or passed via next() and returns a uniform JSON response.
  */
-function errorHandler(err, _req, res, _next) {
+function errorHandler(err, _req, res, 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+_next) {
     // Zod validation errors
     if (err instanceof zod_1.ZodError) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const message = err.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join("; ");
         res.status(400).json({ error: message, code: "VALIDATION_ERROR" });
         return;
