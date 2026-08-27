@@ -9,8 +9,6 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { analyzeText } from "../lib/analyzeText.js";
 import { validate } from "../middleware/validate.js";
 
-const router = Router();
-
 const analyzeSchema = z.object({
   text: z.string().min(1, "Text is required"),
 });
@@ -19,6 +17,8 @@ const analyzeSchema = z.object({
  * Creates the analyze router with a shared Prisma instance.
  */
 export function createAnalyzeRouter(prisma: PrismaClient): Router {
+  const router = Router();
+
   router.post("/", validate(analyzeSchema), async (req, res, next) => {
     try {
       const { text } = req.body as z.infer<typeof analyzeSchema>;

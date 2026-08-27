@@ -83,7 +83,7 @@ app.use((req, _res, next) => {
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 // Health check is public (used by Docker healthchecks and uptime monitors)
-app.use("/api/health", createHealthRouter());
+app.use("/api/health", createHealthRouter(prisma));
 
 // All other routes require bearer token auth
 app.use("/api/analyze", requireAuth, analyzeLimiter, createAnalyzeRouter(prisma));
@@ -105,14 +105,18 @@ app.use(errorHandler);
 
 async function startServer() {
   try {
-    await prisma.$connect();
-    logger.info("Connected to database");
-
-    app.listen(PORT, () => {
+    app.listen(Number(PORT), "0.0.0.0", () => {
       logger.info(`Server is running on port ${PORT}`);
       logger.info(`Allowed origins: ${allowedOrigins.join(", ")}`);
       logger.info(`Auth: ${process.env.API_SECRET ? "enabled" : "disabled (API_SECRET not set)"}`);
     });
+
+    try {
+      await prisma.$connect();
+      logger.info("Connected to database");
+    } catch (dbErr) {
+      logger.error(dbErr, "Database connection failed on startup. Server is running, but database is down. Check DATABASE_URL.");
+    }
   } catch (err) {
     logger.error(err, "Failed to start server");
     process.exit(1);
