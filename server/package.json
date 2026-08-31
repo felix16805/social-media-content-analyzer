@@ -13,7 +13,7 @@
         "prisma:studio": "prisma studio"
     },
     "dependencies": {
-        "@prisma/client": "^6.9.0",
+        "@prisma/client": "^7.10.0",
         "cors": "^2.8.5",
         "express": "^5.1.0",
         "express-rate-limit": "^8.6.2",
